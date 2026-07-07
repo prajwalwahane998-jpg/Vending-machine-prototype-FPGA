@@ -1,0 +1,112 @@
+`timescale 1ns / 1ps
+
+module tb_vending_machine;
+
+    // Inputs
+    reg clk;
+    reg reset;
+    reg quarter;
+    reg dollar;
+    reg [3:0] select;
+    reg buy;
+    reg [3:0] load;
+    reg return_money;
+
+    // Outputs
+    wire [11:0] money;
+    wire [3:0] products;
+    wire [3:0] out_of_stock;
+
+    // Instantiate the Unit Under Test (UUT)
+    Vending_Machine uut (
+        .clk(clk),
+        .reset(reset),
+        .quarter(quarter),
+        .dollar(dollar),
+        .select(select),
+        .buy(buy),
+        .load(load),
+        .return_money(return_money),
+        .money(money),
+        .products(products),
+        .out_of_stock(out_of_stock)
+    );
+
+    // Generate 100MHz clock
+    always #5 clk = ~clk; // 10ns period
+
+    // Simulation procedure
+    initial begin
+        // Initialize inputs
+        clk = 0;
+        reset = 1;
+        quarter = 0;
+        dollar = 0;
+        select = 0;
+        buy = 0;
+        load = 4'b0000;
+        return_money = 0;
+
+        // Wait for global reset
+        #20;
+        reset = 0;
+
+        // Insert a dollar
+        #10 dollar = 1;
+        #10 dollar = 0;
+
+        // Buy product 1 (chocolate - 75 cents)
+        #20 select = 4'b0010;
+        #10 buy = 1;
+        #10 buy = 0;
+
+        // Insert a quarter
+        #20 quarter = 1;
+        #10 quarter = 0;
+
+        // Buy product 0 (gum - 25 cents)
+        #20 select = 4'b0001;
+        #10 buy = 1;
+        #10 buy = 0;
+
+        // Insert 2 dollars
+        #20 dollar = 1; #10 dollar = 0;
+        #20 dollar = 1; #10 dollar = 0;
+
+        // Buy product 3 (drink - $2)
+        #20 select = 4'b1000;
+        #10 buy = 1;
+        #10 buy = 0;
+
+        // Return remaining money
+        #20 return_money = 1;
+        #10 return_money = 0;
+
+        // Simulate stock depletion
+        #20;
+        repeat (15) begin
+            #10 dollar = 1; #10 dollar = 0;
+            #10 select = 4'b0001; // gum
+            #10 buy = 1;
+            #10 buy = 0;
+        end
+
+        // Check out-of-stock signal
+        #20;
+
+        // Refill product 0 (gum)
+        #10 load = 4'b0001;
+        #10 load = 4'b0000;
+
+        // Insert 25c and buy gum again
+        #10 quarter = 1; #10 quarter = 0;
+        #10 select = 4'b0001;
+        #10 buy = 1;
+        #10 buy = 0;
+
+        // Finish simulation
+        #100;
+        $stop;
+    end
+
+endmodule
